@@ -30,6 +30,7 @@ formLayout = QFormLayout()
 groupBox = QGroupBox("")
 
 msgs = []
+msgStatus = []
 
 def joinChat():
      startUpWin.hide()
@@ -53,6 +54,12 @@ def addButton():
     btn.resize(100, 40)
     btn.setText("Hello World")
     msgArea.addScrollBarWidget(btn, Qt.AlignLeft)
+
+def changeMessageStatus():
+    num = edtMsg.displayText()
+    print(num)
+    iNum = int(num)
+    msgStatus[iNum].setText("\nreceived")
     
 def drawChatWindow():
     chatWin.setGeometry(600, 100, 850, 750)
@@ -94,7 +101,7 @@ def drawChatWindow():
     btnSend.move(730, 700)
     btnSend.setText("SEND")
     btnSend.setFont(QFont('Consolas Bold', 18))
-    btnSend.clicked.connect(addButton)
+    btnSend.clicked.connect(changeMessageStatus)
 
     '''
     msgArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
@@ -105,8 +112,24 @@ def drawChatWindow():
     '''
 
     for i in range(100):
-        msgs.append(QLabel("Hello World!"))
-        formLayout.addRow(msgs[i])
+        body = QLabel()
+
+        if i % 2 == 0: 
+            body.setText("Hello World! Message number " +  str(i))
+        else:
+            body.setText("    Hello World! Message number " +  str(i))
+        
+        body.setFont(QFont('Arial Rounded MT Bold', 12))
+
+        det = QLabel()
+        det.setText("\nsent")
+        det.setAlignment(QtCore.Qt.AlignRight)
+        det.setFont(QFont('Arial Rounded MT Bold', 8))
+        
+        msgs.append(body)
+        msgStatus.append(det)
+        formLayout.addRow(msgs[i], msgStatus[i])
+        formLayout.setVerticalSpacing(20)
 
     groupBox.setLayout(formLayout)
     scroll = QScrollArea(chatWin)
