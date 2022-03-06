@@ -47,6 +47,10 @@ userName = ""
 serverIPAddress = ""
 serverAddressPort = ()
 bufferSize = 1024
+
+# Create a socket for UDP on the client process
+UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+UDPClientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 '''
     This method returns the width and height of the screen
     Inspired by code found at: https://www.blog.pythonlibrary.org/2015/08/18/getting-your-screen-resolution-with-python/
@@ -61,6 +65,7 @@ def join():
     chatWin.show()
 
 def joinChat():
+    global userName
     userName = edtUserName.displayText()
     serverIPAddress = edtIPAddress.displayText()
 
@@ -68,10 +73,6 @@ def joinChat():
     print(userName)
     
     serverAddressPort  = (serverIPAddress, 20007)
-    
-    # Create a socket for UDP on the client process
-    UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-    UDPClientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     # Send to server using this socket
     UDPClientSocket.sendto(pkt, serverAddressPort)
@@ -102,7 +103,7 @@ def joinChat():
         x.start()
 
 
-    UDPClientSocket.close()
+    #UDPClientSocket.close()
 
 def addUser(user):
     global userCount
@@ -260,22 +261,27 @@ def drawStartUpWindow():
 
 def receivePackets():
     print("Inside thread")
-    serverAddressPort  = (serverIPAddress, 20007)
+    serverAddressPort  = ("", 20007)
     bufferSize = 1024
     
     # Create a socket for UDP on the client process
-    UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-    UDPClientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    UDPClientSocket.bind(serverAddressPort)
+    #UDPClientSocket1 = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    #UDPClientSocket1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    #UDPClientSocket1.bind(serverAddressPort)
     
     while (True):
+        #UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
+        print("Inside while loop")
         bytesAddressPair = UDPClientSocket.recvfrom(bufferSize)
+        print("Message received")
 
         message = bytesAddressPair[0]
         message = message.decode()
         print(message)
         message = message.split("|")
         command = message[0]
+        print(command)
 
         if command == "ADD":
             if message[1] != userName:

@@ -1,3 +1,4 @@
+from audioop import add
 from ipaddress import ip_address
 from re import U
 import socket
@@ -41,6 +42,8 @@ while(True):
 
         if username in usernames:
             msgFromServer = "REJECT"
+            bytesToSend = str.encode(msgFromServer)
+            UDPServerSocket.sendto(bytesToSend, address)
         else:
             usernames.append(username)
             addresses.append(address)
@@ -52,35 +55,21 @@ while(True):
             users = users[:-1]
             msgFromServer = "ACCEPT|"  + users
 
-    
+            bytesToSend = str.encode(msgFromServer)
+            UDPServerSocket.sendto(bytesToSend, address)
+
+            for a in addresses:
+                if a != address:
+                    msgFromServer = "ADD|" + username
+                    bytesToSend = str.encode(msgFromServer)
+                    UDPServerSocket.sendto(bytesToSend, a)
+
     '''
-    comp = clientMsg.split("#")
-    nme = comp[0]
-    msg = comp[1]
-
-    print(nme + ": " + msg)
-    print(clientIP)
+    for i in range(len(addresses)):
+        for j in range(len(usernames)):
+            print("Inside here")
+            msgFromServer = "ADD|" + usernames[j]
+            bytesToSend = str.encode(msgFromServer)
+            UDPServerSocket.sendto(bytesToSend, addresses[i])
+            print("Sent")
     '''
-    msgNum += 1
-    bytesToSend = str.encode(msgFromServer)
-
-    # Sending a reply to client
-    UDPServerSocket.sendto(bytesToSend, address)
-
-    for i in range(len(usernames)):
-        print("Inside here")
-        msgFromServer = "ADD|" + usernames[i]
-        bytesToSend = str.encode(msgFromServer)
-        UDPServerSocket.sendto(bytesToSend, addresses[i])
-
-'''
-sPort = 20000
-sSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-sSocket.bind(('', sPort))
-print("Server ready")
-
-while True:
-    message, cAddress = sSocket.recvfrom(2048)
-    modifiedMessage = message.decode().upper()
-    sSocket.sendto(modifiedMessage.endode(), cAddress)
-'''
