@@ -1,18 +1,27 @@
+from distutils import command
 import imp
 from ntpath import join
+from turtle import width
+from urllib import response
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QApplication, QMainWindow, QSlider, QScrollArea, QLabel, QVBoxLayout, QFormLayout, QBoxLayout, QGroupBox
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 import sys
+from http import client, server
+import socket
+import os.path
+import threading
 
 app = QApplication(sys.argv)
 
 chatWin = QMainWindow()
 startUpWin = QMainWindow()
+msgWin = QMainWindow()
 
 lblUserName = QtWidgets.QLabel(startUpWin)
 lblIPAddress = QtWidgets.QLabel(startUpWin)
+lblReceiver = QtWidgets.QLabel(chatWin)
 
 edtUserName = QtWidgets.QLineEdit(startUpWin)
 edtIPAddress = QtWidgets.QLineEdit(startUpWin)
@@ -31,23 +40,92 @@ groupBox = QGroupBox("")
 
 msgs = []
 msgStatus = []
+currentUsers = {}
+userCount = -1
+
+userName = ""
+serverIPAddress = ""
+serverAddressPort = ()
+bufferSize = 1024
+'''
+    This method returns the width and height of the screen
+    Inspired by code found at: https://www.blog.pythonlibrary.org/2015/08/18/getting-your-screen-resolution-with-python/
+'''
+def getScreenDimentions():
+    res = app.desktop().screenGeometry()
+    width, height = res.width(), res.height()
+    return width, height
+
+def join():
+    startUpWin.hide()
+    chatWin.show()
 
 def joinChat():
-     startUpWin.hide()
-     chatWin.show()
+    userName = edtUserName.displayText()
+    serverIPAddress = edtIPAddress.displayText()
 
-def addUser():
-    lwi = QtWidgets.QListWidgetItem(edtMsg.displayText())
-    lwUsers.addItem(lwi)
+    pkt = str.encode("JOIN|" + userName)
+    print(userName)
+    
+    serverAddressPort  = (serverIPAddress, 20007)
+    
+    # Create a socket for UDP on the client process
+    UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    UDPClientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-def removeUser():
-    lwUsers.takeItem(lwUsers.currentRow())
+    # Send to server using this socket
+    UDPClientSocket.sendto(pkt, serverAddressPort)
+    
+    # Receive response from server
+    serverResponse = UDPClientSocket.recvfrom(bufferSize)
+    response1 = serverResponse[0].decode()
+    print(response1)
+    
+    response = response1.split("|")
+    print(str(response))
+
+    if response[0] == "REJECT":
+        print("The username you provided is already connected to the server. Please provide a different one.")
+        edtUserName.setText("")
+
+    else:
+        users = response[1].split("#")
+        print(str(users))
+
+        for u in users:
+            if u != userName:
+                addUser(u)
+        
+        startUpWin.hide()
+        chatWin.show()
+        x = threading.Thread(target=receivePackets)
+        x.start()
+
+
+    UDPClientSocket.close()
+
+def addUser(user):
+    global userCount
+
+    lwUsers.addItem(user)
+    userCount += 1
+    currentUsers[user] = userCount
+
+def removeUser(user):
+    global userCount
+
+    lwUsers.takeItem(currentUsers[user])
+    userCount -= 1
+    currentUsers.pop(user)
 
 def addGroup():
     lwi = QtWidgets.QListWidgetItem(edtMsg.displayText())
 
-def showItem():
-    print(lwUsers.currentItem().text())
+def setUserReceiver():
+    lblReceiver.setText(lwUsers.currentItem().text())
+
+def setGroupReceiver():
+    lblReceiver.setText(lwGroups.currentItem().text())
 
 def addButton():
     btn = QtWidgets.QPushButton(chatWin)
@@ -62,7 +140,11 @@ def changeMessageStatus():
     msgStatus[iNum].setText("\nreceived")
     
 def drawChatWindow():
-    chatWin.setGeometry(600, 100, 850, 750)
+    width, height = getScreenDimentions()
+    row = int(height/2 - 850/2)
+    col = int(width/2 - 750/2)
+
+    chatWin.setGeometry(col, row, 850, 750)
     chatWin.setWindowTitle("Display Window")
 
     lblUsers = QtWidgets.QLabel(chatWin)
@@ -77,21 +159,20 @@ def drawChatWindow():
     lblGroups.move(5, 400)
     lblGroups.setFont(QFont('Arial Rounded MT Bold', 14))
 
+    lblReceiver.resize(500, 50)
+    lblReceiver.move(220, 50)
+    lblReceiver.setFont(QFont('Arial Rounded MT Bold', 14))
+    lblReceiver.setText("<none selected>")
+
     lwUsers.resize(200, 300)
     lwUsers.move(5, 90)
     lwUsers.setFont(QFont('Arial Rounded MT Bold', 10))
-    lwUsers.itemClicked.connect(showItem)
-    QtWidgets.QListWidgetItem("Danny", lwUsers)
-    QtWidgets.QListWidgetItem("Michael", lwUsers)
-    QtWidgets.QListWidgetItem("Sizwe", lwUsers)
+    lwUsers.itemClicked.connect(setUserReceiver)
 
     lwGroups.resize(200, 300)
     lwGroups.move(5, 440)
     lwGroups.setFont(QFont('Arial Rounded MT Bold', 10))
-    #lwGroups.itemClicked.connect(showItem(lwGroups))
-    QtWidgets.QListWidgetItem("Computer Science", lwGroups)
-    QtWidgets.QListWidgetItem("Mathematic", lwGroups)
-    QtWidgets.QListWidgetItem("Economics", lwGroups)
+    lwGroups.itemClicked.connect(setGroupReceiver)
 
     edtMsg.resize(500, 40)
     edtMsg.move(220, 700)
@@ -144,7 +225,12 @@ def drawChatWindow():
 
 
 def drawStartUpWindow():
-    startUpWin.setGeometry(750, 380, 290, 270)
+    width, height = getScreenDimentions()
+    row = int(height/2 - 290/2)
+    col = int(width/2 - 270/2)
+
+    #startUpWin.setGeometry(750, 380, 290, 270)
+    startUpWin.setGeometry(col, row, 290, 270)
     startUpWin.setWindowTitle("Login to Chat Application")
 
     lblUserName.setText("User name:")
@@ -171,6 +257,32 @@ def drawStartUpWindow():
     btnJoinChat.setText("Join Chat")
     btnJoinChat.setFont(QFont('Arial Rounded MT Bold', 14))
     btnJoinChat.clicked.connect(joinChat)
+
+def receivePackets():
+    print("Inside thread")
+    serverAddressPort  = (serverIPAddress, 20007)
+    bufferSize = 1024
+    
+    # Create a socket for UDP on the client process
+    UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    UDPClientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    UDPClientSocket.bind(serverAddressPort)
+    
+    while (True):
+        bytesAddressPair = UDPClientSocket.recvfrom(bufferSize)
+
+        message = bytesAddressPair[0]
+        message = message.decode()
+        print(message)
+        message = message.split("|")
+        command = message[0]
+
+        if command == "ADD":
+            if message[1] != userName:
+                addUser(message[1])
+        elif command == "SUB":
+            removeUser(message[1])
+        #elif command == "CHAT":
 
 
 def main():
