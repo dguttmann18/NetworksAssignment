@@ -1,6 +1,7 @@
 from distutils import command
 import imp
 from ntpath import join
+from re import X
 from turtle import width
 from urllib import response
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -10,8 +11,10 @@ from PyQt5.QtCore import Qt
 import sys
 from http import client, server
 import socket
-import os.path
+import os
 import threading
+import atexit
+
 
 app = QApplication(sys.argv)
 
@@ -48,6 +51,8 @@ serverIPAddress = ""
 serverAddressPort = ()
 bufferSize = 1024
 
+
+
 # Create a socket for UDP on the client process
 UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 UDPClientSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -64,8 +69,51 @@ def join():
     startUpWin.hide()
     chatWin.show()
 
+def exit_handler():
+    global x
+    x.stop()
+
+def sendMessage():
+    global userName, serverAddressPort, serverIPAddress
+    receiver = lblReceiver.text()
+    data = edtMsg.displayText()
+
+    msg = "CHAT|" + receiver + "|" + data
+    UDPClientSocket.sendto(msg, serverAddressPort)
+    edtMsg.setText("")
+
+    addMessage(userName + "#" + data + "#sent")
+    fileName = userName + "#" + receiver
+
+    f = open(fileName, "a")
+    f.write(userName + "#" + data + "#sent")
+    f.close()
+
+def addMessage(msg):
+    body = QLabel()
+
+    data = msg.split("#")
+
+   
+    body.setText(data[0] + ": " + data[1])
+        
+    body.setFont(QFont('Arial Rounded MT Bold', 12))
+    
+    det = QLabel()
+    
+    if data[0] == userName:
+        det.setText("\n" + data[2])
+    else:
+        det.setText("")
+
+    det.setAlignment(QtCore.Qt.AlignRight)
+    det.setFont(QFont('Arial Rounded MT Bold', 8))
+    formLayout.addRow(body, det)
+        
+    formLayout.setVerticalSpacing(20)    
+
 def joinChat():
-    global userName
+    global userName, serverAddressPort, serverIPAddress, x
     userName = edtUserName.displayText()
     serverIPAddress = edtIPAddress.displayText()
 
@@ -99,7 +147,6 @@ def joinChat():
         
         startUpWin.hide()
         chatWin.show()
-        x = threading.Thread(target=receivePackets)
         x.start()
 
 
@@ -124,6 +171,18 @@ def addGroup():
 
 def setUserReceiver():
     lblReceiver.setText(lwUsers.currentItem().text())
+
+    fileName = userName + "#" + lblReceiver.text() + ".txt"
+
+    print(fileName)
+
+    if os.path.exists(fileName):
+        f = open(fileName, "r")
+
+        for x in f:
+            addMessage(x)
+        
+        f.close()
 
 def setGroupReceiver():
     lblReceiver.setText(lwGroups.currentItem().text())
@@ -192,7 +251,7 @@ def drawChatWindow():
     msgArea.resize(650, 850)
     msgArea.move(220, 90)
     '''
-
+    '''
     for i in range(100):
         body = QLabel()
 
@@ -212,6 +271,7 @@ def drawChatWindow():
         msgStatus.append(det)
         formLayout.addRow(msgs[i], msgStatus[i])
         formLayout.setVerticalSpacing(20)
+    '''
 
     groupBox.setLayout(formLayout)
     scroll = QScrollArea(chatWin)
@@ -288,13 +348,26 @@ def receivePackets():
                 addUser(message[1])
         elif command == "SUB":
             removeUser(message[1])
-        #elif command == "CHAT":
+        elif command == "CHAT":
+            sender = message[1]
+            data = message[3]
+            fileName = userName + "#" + sender + ".txt"
+
+            f = open(fileName, "a")
+            f.write(sender + "#" + data)
+            f.close()
+        #elif command == "READ":
+
+
 
 
 def main():
+    global x
     drawStartUpWindow()
     drawChatWindow()
     startUpWin.show()
+    x = threading.Thread(target=receivePackets)
+    atexit.register(exit_handler)
     sys.exit(app.exec_())
 
 main()
