@@ -35,11 +35,12 @@ btnSend = QtWidgets.QPushButton(chatWin)
 
 lwUsers = QtWidgets.QListWidget(chatWin)
 lwGroups = QtWidgets.QListWidget(chatWin)
+lwMessages = QtWidgets.QListWidget(chatWin)
 
-msgArea = QScrollArea()
+#msgArea = QScrollArea()
 
-formLayout = QFormLayout()
-groupBox = QGroupBox("")
+#formLayout = QFormLayout()
+#groupBox = QGroupBox("")
 
 msgs = []
 msgStatus = []
@@ -50,7 +51,7 @@ userName = ""
 serverIPAddress = ""
 serverAddressPort = ()
 bufferSize = 1024
-
+rowCount = 0
 
 
 # Create a socket for UDP on the client process
@@ -79,38 +80,32 @@ def sendMessage():
     data = edtMsg.displayText()
 
     msg = "CHAT|" + receiver + "|" + data
-    UDPClientSocket.sendto(msg, serverAddressPort)
+    bytesToSend = str.encode(msg)
+    UDPClientSocket.sendto(bytesToSend, serverAddressPort)
     edtMsg.setText("")
 
-    addMessage(userName + "#" + data + "#sent")
-    fileName = userName + "#" + receiver
+    #addMessage(userName + "#" + data + "#sent")
+    fileName = userName + "#" + receiver + ".txt"
 
     f = open(fileName, "a")
-    f.write(userName + "#" + data + "#sent")
+    f.write(userName + "#" + data + "#sent\n")
     f.close()
 
+    setUserReceiver()
+
 def addMessage(msg):
-    body = QLabel()
-
+    global rowCount
+    print("Msg:" + msg)
+    msg = msg.replace("\n", "")
     data = msg.split("#")
+    mg = data[0] + ": " + data[1]
 
+    if len(data) == 3:
+        mg += " (" + data[2] + ")"    
+    
+    lwMessages.addItem(mg)
+    rowCount += 1
    
-    body.setText(data[0] + ": " + data[1])
-        
-    body.setFont(QFont('Arial Rounded MT Bold', 12))
-    
-    det = QLabel()
-    
-    if data[0] == userName:
-        det.setText("\n" + data[2])
-    else:
-        det.setText("")
-
-    det.setAlignment(QtCore.Qt.AlignRight)
-    det.setFont(QFont('Arial Rounded MT Bold', 8))
-    formLayout.addRow(body, det)
-        
-    formLayout.setVerticalSpacing(20)    
 
 def joinChat():
     global userName, serverAddressPort, serverIPAddress, x
@@ -170,17 +165,26 @@ def addGroup():
     lwi = QtWidgets.QListWidgetItem(edtMsg.displayText())
 
 def setUserReceiver():
+    global rowCount
     lblReceiver.setText(lwUsers.currentItem().text())
 
     fileName = userName + "#" + lblReceiver.text() + ".txt"
 
-    print(fileName)
+    #for i in range(rowCount):
+    #    lwMessages.takeItem(i)
+
+    lwMessages.clear()
+    
+    rowCount = 0
 
     if os.path.exists(fileName):
-        f = open(fileName, "r")
+        print("File exists!")
 
+        f = open(fileName, "r")
+ 
         for x in f:
-            addMessage(x)
+            if x!= "":
+                addMessage(x)
         
         f.close()
 
@@ -191,7 +195,7 @@ def addButton():
     btn = QtWidgets.QPushButton(chatWin)
     btn.resize(100, 40)
     btn.setText("Hello World")
-    msgArea.addScrollBarWidget(btn, Qt.AlignLeft)
+    #msgArea.addScrollBarWidget(btn, Qt.AlignLeft)
 
 def changeMessageStatus():
     num = edtMsg.displayText()
@@ -234,6 +238,10 @@ def drawChatWindow():
     lwGroups.setFont(QFont('Arial Rounded MT Bold', 10))
     lwGroups.itemClicked.connect(setGroupReceiver)
 
+    lwMessages.resize(600, 550)
+    lwMessages.move(220, 90)
+    lwMessages.setFont(QFont('Arial Rounded MT Bold', 10))
+
     edtMsg.resize(500, 40)
     edtMsg.move(220, 700)
     edtMsg.setFont(QFont('Arial Rounded MT Bold', 10))
@@ -242,7 +250,7 @@ def drawChatWindow():
     btnSend.move(730, 700)
     btnSend.setText("SEND")
     btnSend.setFont(QFont('Consolas Bold', 18))
-    btnSend.clicked.connect(changeMessageStatus)
+    btnSend.clicked.connect(sendMessage)
 
     '''
     msgArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
@@ -272,7 +280,7 @@ def drawChatWindow():
         formLayout.addRow(msgs[i], msgStatus[i])
         formLayout.setVerticalSpacing(20)
     '''
-
+    '''
     groupBox.setLayout(formLayout)
     scroll = QScrollArea(chatWin)
     scroll.setWidget(groupBox)
@@ -283,7 +291,7 @@ def drawChatWindow():
 
     layout = QVBoxLayout()
     layout.addWidget(scroll)
-
+    '''
 
 def drawStartUpWindow():
     width, height = getScreenDimentions()
@@ -350,12 +358,14 @@ def receivePackets():
             removeUser(message[1])
         elif command == "CHAT":
             sender = message[1]
-            data = message[3]
+            data = message[2]
             fileName = userName + "#" + sender + ".txt"
 
             f = open(fileName, "a")
-            f.write(sender + "#" + data)
+            f.write(sender + "#" + data +"\n")
             f.close()
+
+            setUserReceiver()
         #elif command == "READ":
 
 
