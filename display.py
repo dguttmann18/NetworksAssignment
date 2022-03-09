@@ -110,12 +110,10 @@ def changeMessageStatusToReceived(msgNum, receiver):
 
     f = open(fileName, "r")
     for x in f:
-        print(x)
         msgLines.append(x)
     f.close()
 
     i = 0
-    print(msgLines[0])
     msgSplit = msgLines[0].split("#")
     num = msgSplit[1]
 
@@ -153,7 +151,6 @@ This method runs when the program ends.
 '''
 def exit_handler():
     global x, prog
-    print("Program is closing")
     
     msgForServer = "LEAVE|" + userName
     bytesToSend = str.encode(msgForServer)
@@ -163,9 +160,6 @@ def exit_handler():
     prog = "not running"
     #x.terminate()
     x.join()
-
-def closeEvent(event):
-    print("Close event fired")
 
 '''
 This method sends data messages to the server and updates the relevant text file.
@@ -195,15 +189,17 @@ def sendMessage():
 This method adds a message to the screen.
 '''
 def addMessage(msg):
-    msg = msg.replace("\n", "")
-    data = msg.split("#")
-    
-    mg = data[0] + ": " + data[2]
 
-    if len(data) == 4:
-        mg += " (" + data[3] + ")"    
+    if msg != "":
+        msg = msg.replace("\n", "")
+        data = msg.split("#")
     
-    lwMessages.addItem(mg)
+        mg = data[0] + ": " + data[2]
+
+        if len(data) == 4:
+            mg += " (" + data[3] + ")"    
+    
+        lwMessages.addItem(mg)
 
 '''
 This method contacts the server to try and add the user to the chat.
@@ -214,7 +210,6 @@ def joinChat():
     serverIPAddress = edtIPAddress.displayText()
 
     pkt = str.encode("JOIN|" + userName)
-    print(userName)
     
     serverAddressPort  = (serverIPAddress, 20007)
 
@@ -225,10 +220,8 @@ def joinChat():
     # Receive response from server
     serverResponse = UDPClientSocket.recvfrom(bufferSize)
     response1 = serverResponse[0].decode()
-    print(response1)
     
     response = response1.split("|")
-    print(str(response))
 
     if response[0] == "REJECT":
         msgBox.setText("The username you provided is already connected to the server. Please provide a different one.")
@@ -238,7 +231,6 @@ def joinChat():
 
     else:
         users = response[1].split("#")
-        print(str(users))
 
         for u in users:
             if u != userName:
@@ -264,7 +256,6 @@ def addUser(user):
     currentUsers[user] = userCount
 
 def removeUser(user):
-    print("inside remove user")
     global userCount
 
     userNum = currentUsers[user]
@@ -310,8 +301,6 @@ def setUserReceiver(user=None):
     rowCount = 0
 
     if os.path.exists(fileName):
-        print("File exists!")
-
         f = open(fileName, "r")
  
         for x in f:
@@ -331,7 +320,6 @@ This method changes the message status.
 '''
 def changeMessageStatus():
     num = edtMsg.displayText()
-    print(num)
     iNum = int(num)
     msgStatus[iNum].setText("\nreceived")
 
@@ -425,7 +413,6 @@ This method runs an infinite loop on a separate thread that receives packets fro
 '''
 def receivePackets():
     global prog, serverAddressPort
-    print("Inside thread")
     #serverAddressPort  = ("", 20007)
     bufferSize = 1024
     
@@ -435,18 +422,13 @@ def receivePackets():
     #UDPClientSocket1.bind(serverAddressPort)
     
     while (prog == "running"):
-        #UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-
-        print("Inside while loop")
         bytesAddressPair = UDPClientSocket.recvfrom(bufferSize)
-        print("Message received")
+
 
         message = bytesAddressPair[0]
         message = message.decode()
-        print(message)
         message = message.split("|")
         command = message[0]
-        print(command)
 
         if command == "ADD":
             if message[1] != userName:
@@ -470,10 +452,12 @@ def receivePackets():
             UDPClientSocket.sendto(bytesToSend, serverAddressPort)
 
             setUserReceiver(sender)
+            '''
             msgBox.setWindowTitle("Message Received")
             msgBox.setText("A message has been received from " + sender)
             msgBox.setDetailedText(data)
             msgBox.show()
+            '''
         elif command == "READ":
             sender = message[1]
             msgNum = message[2]
@@ -481,7 +465,6 @@ def receivePackets():
             changeMessageStatusToReceived(msgNum, sender)
             setUserReceiver(sender)
         elif command == "LEAVE":
-            print("LEAVE RECEIVED ON CLIENT SIDE")
             userToRemove = message[1]
             removeUser(userToRemove)
 

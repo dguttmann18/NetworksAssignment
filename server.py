@@ -74,7 +74,7 @@ while(True):
     if command == "JOIN":
         username = clientMsg[1]
 
-        print(username + "connected")
+        print(username + " connected")
 
         if username in usernames:
             msgFromServer = "REJECT"
