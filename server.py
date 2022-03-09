@@ -1,10 +1,15 @@
 from audioop import add
 from getpass import getuser
 from ipaddress import ip_address
+from pydoc import cli
 from re import U
 import socket
 import sys
 
+
+'''
+Declare global variables and assign default values.
+'''
 localIP     = "127.0.0.1"
 localPort   = 20007
 bufferSize  = 1024
@@ -14,6 +19,9 @@ IP = socket.gethostbyname(hostname)
 usernames = []
 addresses = []
 
+'''
+This methods returns the address of the parsed username.
+'''
 def getAddress(userName):
     i = 0
 
@@ -25,6 +33,9 @@ def getAddress(userName):
     else:
         return NULL
 
+'''
+This method returns the username currently associated with the parsed address
+'''
 def getUsername(address):
     i = 0
 
@@ -63,7 +74,7 @@ while(True):
     if command == "JOIN":
         username = clientMsg[1]
 
-        print("User connected")
+        print(username + "connected")
 
         if username in usernames:
             msgFromServer = "REJECT"
@@ -90,19 +101,33 @@ while(True):
                     UDPServerSocket.sendto(bytesToSend, a)
     elif command == "CHAT":
         receiver = clientMsg[1]
+        msgNum = clientMsg[2]
+        checkSum = clientMsg[3]
+        data = clientMsg[4]
+
         receiverAddress = getAddress(receiver)
-        dataToSend = "CHAT|" + getUsername(address) + "|" + clientMsg[2]
+        dataToSend = "CHAT|" + getUsername(address) + "|" + msgNum + "|" + checkSum +"|" + data
         bytesToSend = str.encode(dataToSend)
         UDPServerSocket.sendto(bytesToSend, receiverAddress)
+    elif command == "READ":
+        receiver = clientMsg[1]
+        msgNum = clientMsg[2]
+        senderUserName = getUsername(address)
+        sendAddress = getAddress(receiver)
 
+        msgToSend = "READ" + "|" + senderUserName + "|" + msgNum
+        bytesToSend = str.encode(msgToSend)
+        UDPServerSocket.sendto(bytesToSend, sendAddress)
+    elif command == "LEAVE":
+        user = clientMsg[1]
+        userAddress = getAddress(user)
 
+        usernames.remove(user)
+        addresses.remove(userAddress)
 
-    '''
-    for i in range(len(addresses)):
-        for j in range(len(usernames)):
-            print("Inside here")
-            msgFromServer = "ADD|" + usernames[j]
-            bytesToSend = str.encode(msgFromServer)
-            UDPServerSocket.sendto(bytesToSend, addresses[i])
-            print("Sent")
-    '''
+        msgToSend = "LEAVE|" + user
+        bytesToSend = str.encode(msgToSend)
+
+        for a in addresses:
+            UDPServerSocket.sendto(bytesToSend, a)
+
