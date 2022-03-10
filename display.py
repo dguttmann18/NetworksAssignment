@@ -113,12 +113,15 @@ def changeMessageStatusToReceived(msgNum, receiver):
         msgLines.append(x)
     f.close()
 
-    i = 0
-    msgSplit = msgLines[0].split("#")
-    num = msgSplit[1]
+    if len(msgLines) > 0:
+        i = 0
+        msgLines[0] = msgLines[0].replace("\n", "")
+        msgSplit = msgLines[0].split("#")
+        num = msgSplit[1]
 
-    while num != msgNum and i < len(msgLines):
+    while num != msgNum and i+1 < len(msgLines):
         i += 1
+        msgLines[i] = msgLines[i].replace("\n", "")
         msgSplit = msgLines[i].split("#")
         num = msgSplit[1]
     

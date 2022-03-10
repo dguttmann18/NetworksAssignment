@@ -10,11 +10,10 @@ import sys
 '''
 Declare global variables and assign default values.
 '''
-localIP     = "127.0.0.1"
+localIP     = "196.24.174.108"
 localPort   = 20007
 bufferSize  = 1024
-hostname = socket.gethostname()
-IP = socket.gethostbyname(hostname)
+IP = input("Enter the IP Address: ")
 
 usernames = []
 addresses = []
