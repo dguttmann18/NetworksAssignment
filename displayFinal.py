@@ -241,7 +241,7 @@ def resetMsgNum(sender):
         addMessage(sender + "#" + "0" + "#" + "A message to the other client has been lost.\n")
 
 '''
-This method contacts the server to try and add the user to the chat.
+This method contacts the server to try and add the user to the chat. (Not implemented)
 '''    
 def testLoss():
     global userName, serverAddressPort, serverIPAddress
